@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>다드림 영업관리 (Dadream CRM)</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Naver Maps API -->
+    <script type="text/javascript"
+        src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=cnrnlxazhh&submodules=geocoder"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Header / Search Bar -->
+    <header class="app-header glass-panel">
+        <div class="search-container">
+            <i class="fa-solid fa-search search-icon"></i>
+            <input type="text" id="globalSearch" placeholder="지역명, 담당자, 현장 검색..." autocomplete="off">
+            <button id="btnReps" class="glass-btn icon-only"
+                style="margin-left:8px; border:none; background:transparent; color:#666;" title="담당자 관리">
+                <i class="fa-solid fa-users" style="font-size:18px;"></i>
+            </button>
+            <button id="btnHistory" class="glass-btn icon-only"
+                style="margin-left:4px; border:none; background:transparent; color:#666;" title="전체 내역">
+                <i class="fa-solid fa-list-check" style="font-size:18px;"></i>
+            </button>
+            <div id="searchResults" class="search-results hidden glass-panel"></div>
+        </div>
+    </header>
+
+    <!-- Map Container -->
+    <div id="map"></div>
+
+    <!-- GPS Button -->
+    <button id="btnMyLocation" class="map-control-btn glass-btn">
+        <i class="fa-solid fa-location-crosshairs"></i>
+    </button>
+
+    <!-- Clear Path Button (Premium Style) -->
+    <button id="btnClearPath" class="hidden" style="
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        color: #333;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        padding: 12px 24px;
+        border-radius: 30px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        z-index: 2000;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    ">
+        <i class="fa-solid fa-times-circle" style="color:#ef4444; font-size:16px;"></i>
+        <span>동선 지우기 (검색 종료)</span>
+    </button>
+
+    <!-- Floating Action Button (FAB) -->
+    <button id="fabMain" class="fab">
+        <i class="fa-solid fa-plus"></i>
+    </button>
+
+    <!-- Modals -->
+    <div id="modalOverlay" class="modal-overlay hidden">
+
+        <!-- Representative Manager Modal -->
+        <div id="repManagerModal" class="modal-card glass-panel hidden"
+            style="max-height:85vh; display:flex; flex-direction:column;">
+            <div class="modal-header">
+                <h2>담당자 관리</h2>
+                <div class="modal-actions">
+                    <button class="close-btn"><i class="fa-solid fa-times"></i></button>
+                </div>
+            </div>
+            <div class="modal-body no-padding" style="overflow-y:auto; flex:1;">
+                <div
+                    style="padding:16px; border-bottom:1px solid #eee; background:#fff; position:sticky; top:0; z-index:10;">
+                    <div class="form-section-card">
+                        <div class="form-section-header" style="justify-content: space-between;">
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <i class="fa-solid fa-user-plus"></i>
+                                <span>신규 담당자 등록</span>
+                            </div>
+                            <button id="btnImportContacts" class="glass-btn small-btn"
+                                style="font-size:12px; height:32px;">
+                                <i class="fa-solid fa-address-book"></i> 연락처 가져오기
+                            </button>
+                        </div>
+                        <form id="repAddForm" class="premium-form">
+                            <input type="hidden" id="editRepId">
+
+                            <div class="input-group">
+                                <div class="input-with-icon premium">
+                                    <i class="fa-solid fa-user input-icon"></i>
+                                    <input type="text" id="newRepName" placeholder="이름을 입력하세요"
+                                        class="glass-input premium-input" required>
+                                </div>
+                            </div>
+
+                            <div class="input-group">
+                                <div class="input-with-icon premium">
+                                    <i class="fa-solid fa-phone input-icon"></i>
+                                    <input type="tel" id="newRepPhone" placeholder="휴대폰 번호 (- 없이 입력)"
+                                        class="glass-input premium-input">
+                                </div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button type="submit" id="btnRepSubmit" class="premium-btn primary">
+                                    <i class="fa-solid fa-plus"></i> 추가하기
+                                </button>
+                                <button type="button" id="btnRepCancelEdit" class="premium-btn secondary hidden">
+                                    취소
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Search Input Added -->
+                    <div style="margin-top:12px;">
+                        <input type="text" id="repSearchInput" placeholder="담당자 이름으로 검색..." class="glass-input"
+                            style="width:100%; border-radius:30px; padding:8px 16px; font-size:14px; background:#f9fafb;">
+                    </div>
+                </div>
+                <div class="timeline-container" id="repList" style="padding-top:0;">
+                    <!-- Rep Items -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin / History Modal -->
+        <div id="adminModal" class="modal-card glass-panel hidden" style="max-height:90vh;">
+            <div class="modal-header">
+                <h2>전체 활동 내역</h2>
+                <div class="modal-actions">
+                    <button class="close-btn"><i class="fa-solid fa-times"></i></button>
+                </div>
+            </div>
+            <div class="modal-body no-padding">
+                <!-- Filter Tabs -->
+                <div class="segmented-control" style="margin:16px;">
+                    <input type="radio" name="adminFilter" value="all" id="af_all" checked>
+                    <label for="af_all">전체</label>
+                    <input type="radio" name="adminFilter" value="active" id="af_active">
+                    <label for="af_active">활성(Active)</label>
+                    <input type="radio" name="adminFilter" value="new" id="af_new">
+                    <label for="af_new">신규(New)</label>
+                </div>
+                <div class="timeline-container" id="adminTimeline" style="padding-top:0;">
+                    <!-- List Items -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Project/Activity Form Modal -->
+        <div id="formModal" class="modal-card glass-panel hidden">
+            <div class="modal-header">
+                <h2 id="modalTitle">현장 등록/수정</h2>
+                <button class="close-btn"><i class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="activityForm">
+                    <input type="hidden" id="editPinId">
+
+                    <!-- Mapping Info -->
+                    <div class="form-group">
+                        <label>주소 (자동 데이터)</label>
+                        <input type="text" id="addressInput" readonly style="background:#f5f5f5; color:#666;">
+                    </div>
+
+                    <!-- Project Info -->
+                    <div class="form-group">
+                        <label>현장 이름 <span style="color:red">*</span></label>
+                        <input type="text" id="siteName" placeholder="예: 강남 대우 디오빌" required>
+                    </div>
+
+                    <!-- Rep Info -->
+                    <div class="form-group">
+                        <label>담당자 배정 (선택)</label>
+                        <select id="repSelect"
+                            style="width:100%; padding:12px; border-radius:12px; border:1px solid #ddd; background:rgba(255,255,255,0.8); font-size:14px;">
+                            <option value="">-- 담당자 미배정 (New) --</option>
+                        </select>
+                        <div id="repPhoneDisplay"
+                            style="margin-top:4px; font-size:12px; color:#4f46e5; font-weight:bold;"></div>
+                    </div>
+
+                    <!-- Image Upload -->
+                    <div class="form-group">
+                        <label>현장 사진</label>
+                        <div class="file-upload-wrapper">
+                            <button type="button" id="btnUpload" class="glass-btn small-btn"><i
+                                    class="fa-solid fa-camera"></i> 사진 촬영/선택</button>
+                            <input type="file" id="imageInput" accept="image/*" hidden>
+                            <span id="fileName" class="file-name">선택된 파일 없음</span>
+                        </div>
+                        <img id="imagePreview" src="" class="hidden form-preview-img">
+                    </div>
+
+                    <div class="form-group">
+                        <label>특이사항 / 메모</label>
+                        <textarea id="notes" rows="3" placeholder="내용 입력"></textarea>
+                    </div>
+
+                    <button type="submit" class="submit-btn">저장하기</button>
+                    <button type="button" id="btnDeletePin" class="submit-btn"
+                        style="background:#ef4444; margin-top:8px; display:none;">현장 삭제</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Client Detail / Timeline Modal -->
+        <div id="clientModal" class="modal-card glass-panel hidden bottom-sheet">
+            <div class="modal-header">
+                <h2 id="clientModalTitle">담당자 상세</h2>
+                <div class="modal-actions">
+                    <button id="btnCallClient" class="glass-btn icon-only success-color"><i
+                            class="fa-solid fa-phone"></i></button>
+                    <button class="close-btn"><i class="fa-solid fa-times"></i></button>
+                </div>
+            </div>
+            <div class="modal-body no-padding">
+                <div class="timeline-container" id="clientTimeline">
+                    <!-- Timeline items injected here -->
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Trajectory Sidebar -->
+    <div id="trajectorySidebar" class="sidebar hidden collapsed" style="z-index: 2500;">
+        <div class="sidebar-wrapper">
+            <!-- Mobile Drag Handle -->
+            <div id="mobileDragHandle" class="sheet-handle-area">
+                <div class="sheet-handle-bar"></div>
+            </div>
+
+            <div class="sidebar-header">
+                <h3 id="trajectoryRepName">이동 경로</h3>
+                <button id="btnCloseTrajectory" class="glass-btn icon-only small-btn" style="display:none;"><i
+                        class="fa-solid fa-times"></i></button>
+            </div>
+            <div class="sidebar-body" id="trajectoryList">
+                <!-- Timeline Items -->
+            </div>
+        </div>
+
+        <button id="btnToggleSidebar" class="sidebar-toggle glass-btn">
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+    </div>
+
+    <!-- Scripts -->
+    <!-- Scripts (Modules) -->
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>

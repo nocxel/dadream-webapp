@@ -1,0 +1,17 @@
+{
+  "name": "dadream-crm",
+  "version": "1.0.0",
+  "description": "Dadream CRM with Naver Maps",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.1.0",
+    "vite": "^7.3.0"
+  }
+}
