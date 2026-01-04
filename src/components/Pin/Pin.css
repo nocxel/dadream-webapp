@@ -1,0 +1,222 @@
+/* Pin Form & Premium Form Styles */
+/* These were extracted from the global style.css and refactored for the component */
+
+/* Modal Structure */
+/* .modal-card, .glass-panel are global utilities defined in style.css */
+
+.hidden {
+    display: none !important;
+}
+
+/* Premium Form Styles */
+.form-section-card {
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.form-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    color: #4f46e5;
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.premium-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Inputs */
+.input-with-icon {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.input-with-icon.premium .input-icon {
+    position: absolute;
+    left: 16px;
+    font-size: 16px;
+    color: #94a3b8;
+    transition: color 0.2s;
+    z-index: 10;
+}
+
+.glass-input.premium-input {
+    width: 100%;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    padding: 14px 14px 14px 44px;
+    font-size: 15px;
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.glass-input.premium-input:focus {
+    outline: none;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    transform: translateY(-1px);
+}
+
+.glass-input.premium-input:focus+.input-icon,
+.input-with-icon.premium:focus-within .input-icon {
+    color: #4f46e5;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    font-size: 16px;
+    font-family: inherit;
+    background: #f9fafb;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: #4f46e5;
+    background: #fff;
+}
+
+/* Segmented Control */
+.segmented-control {
+    display: flex;
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 12px;
+}
+
+.segmented-control input {
+    display: none;
+}
+
+.segmented-control label {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 500;
+    color: #6b7280;
+    transition: all 0.2s;
+}
+
+.segmented-control input:checked+label {
+    background: #fff;
+    color: #4f46e5;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    font-weight: 700;
+}
+
+/* Chips */
+.recent-chips {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.chip {
+    background: #eef2ff;
+    color: #4f46e5;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+/* Photo Upload */
+.form-preview-img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 12px;
+    margin-top: 10px;
+}
+
+.file-name {
+    font-size: 12px;
+    color: #6b7280;
+    margin-left: 8px;
+}
+
+/* Buttons */
+.submit-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.delete-pin-btn {
+    background: #ef4444 !important;
+    margin-top: 8px;
+    display: none;
+    /* Initially hidden */
+}
+
+/* Address Search Results */
+.search-results-static {
+    margin-top: 8px;
+    background: white;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.search-results-static .search-item {
+    padding: 10px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.search-results-static .search-item:hover {
+    background: #f9f9f9;
+}
+
+.selected-address {
+    margin-top: 8px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.success-text {
+    color: #10b981;
+}
+
+/* White Text Helper */
+.white-text {
+    color: white;
+}

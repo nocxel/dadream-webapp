@@ -248,13 +248,11 @@ class MapRenderer {
         }
     }
 
-    fitBounds(coords) {
+    fitBounds(coords, padding = { top: 50, bottom: 50, left: 50, right: 50 }) {
         if (!coords || coords.length === 0) return;
         const bounds = new naver.maps.LatLngBounds();
         coords.forEach(c => bounds.extend(c));
-        this.map.fitBounds(bounds, {
-            top: 50, bottom: 300, left: 50, right: 50 // Bottom padding for sheet
-        });
+        this.map.fitBounds(bounds, padding);
     }
 
     flyTo(lat, lng, zoom = 15) {

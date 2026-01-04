@@ -1,26 +1,41 @@
-/**
- * app.js - Main Application Entry Point
- * Refactored into Feature Modules
- */
 import Store from './store.js';
 import MapRenderer from './map_renderer.js';
 import UIManager from './features/UIManager.js';
-import RepManager from './features/RepManager.js';
-import PinManager from './features/PinManager.js';
-import SearchManager from './features/SearchManager.js';
-import AdminManager from './features/AdminManager.js';
+import LayoutManager from './src/components/Layout/LayoutManager.js';
+import RepManager from './src/components/Contact/RepManager.js';
+import PinManager from './src/components/Pin/PinManager.js';
+import SearchManager from './src/components/Search/SearchManager.js';
+import AdminManager from './src/components/Admin/AdminManager.js';
+import ContactManager from './src/components/Contact/ContactManager.js';
+import AuthManager from './src/components/Auth/AuthManager.js';
 
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. Core Services
-    const store = new Store();
-    const mapRenderer = new MapRenderer('map');
-    const ui = new UIManager();
+class App {
+    constructor() {
+        this.layoutManager = new LayoutManager(); // Init Layout First
 
-    // 2. Feature Managers
-    const repManager = new RepManager(store, ui);
-    const pinManager = new PinManager(store, mapRenderer, ui);
-    const searchManager = new SearchManager(store, mapRenderer, ui);
-    const adminManager = new AdminManager(store, ui);
+        this.store = new Store();
+        this.ui = new UIManager();
+        this.mapRenderer = new MapRenderer('map');
 
-    console.log("Application Initialized");
-});
+        // Feature Managers
+        this.authManager = new AuthManager(this.store); // Init Auth First
+        this.repManager = new RepManager(this.store, this.ui);
+        this.pinManager = new PinManager(this.store, this.mapRenderer, this.ui);
+        this.searchManager = new SearchManager(this.store, this.mapRenderer, this.ui);
+        this.adminManager = new AdminManager(this.store, this.ui);
+        this.contactManager = new ContactManager(this.store, this.ui);
+
+        this.init();
+    }
+
+    async init() {
+        // Managers usually init themselves in constructor or explicitly here
+        // AuthManager inits in constructor (binds events)
+        this.searchManager.init();
+        this.contactManager.init();
+    }
+}
+
+// Start App
+const app = new App();
+window.app = app;

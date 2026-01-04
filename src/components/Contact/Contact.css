@@ -1,0 +1,214 @@
+/* Contact & Rep Module Styles */
+
+/* 1. Modal Layout (Mobile Full-screen, Desktop Card) */
+.contact-modal-height {
+    /* Desktop Default */
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+}
+
+@media (max-width: 600px) {
+    .contact-modal-height {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        border-radius: 0 !important;
+        top: 0 !important;
+        left: 0 !important;
+        transform: none !important;
+        margin: 0 !important;
+    }
+
+    .modal-header {
+        padding-top: max(20px, env(safe-area-inset-top));
+    }
+}
+
+/* 2. Timeline / List Containers */
+.timeline-container {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-bottom: 80px;
+    /* Space for FAB */
+    background: #f8fafc;
+    /* Light gray background for contrast */
+    flex: 1;
+    overflow-y: auto;
+}
+
+.timeline-no-pad-top {
+    padding-top: 10px;
+}
+
+/* 3. Modern Card Style (List Items) */
+.timeline-item {
+    background: white;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.timeline-item:active {
+    transform: scale(0.98);
+}
+
+.timeline-item h4 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.timeline-item p {
+    margin: 4px 0 0 0;
+    font-size: 13px;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* 4. Action Buttons (Small round icons) */
+.action-btn-group {
+    display: flex;
+    gap: 8px;
+}
+
+.list-action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.2s;
+}
+
+.list-action-btn.edit {
+    background: #eff6ff;
+    color: #4f46e5;
+}
+
+.list-action-btn.delete {
+    background: #fef2f2;
+    color: #ef4444;
+}
+
+/* 5. Floating Action Button (FAB) for Add */
+.fab-add-contact {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 50;
+    transition: transform 0.2s;
+}
+
+.fab-add-contact:active {
+    transform: scale(0.95);
+}
+
+/* 6. Form Sections (Glass Style) */
+.form-section-card {
+    background: white;
+    padding: 20px;
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    margin-bottom: 0;
+    position: relative;
+    z-index: 20;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+/* Premium Buttons (Shared Style) */
+.premium-btn {
+    flex: 1;
+    height: 48px;
+    border-radius: 12px;
+    border: none;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.premium-btn.primary {
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.premium-btn.primary:active {
+    transform: scale(0.98);
+}
+
+.premium-btn.secondary {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.premium-btn.secondary:hover {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.premium-btn.secondary:active {
+    transform: scale(0.98);
+}
+
+/* Expandable Add Form */
+.add-form-container {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    opacity: 0;
+}
+
+.add-form-container.open {
+    max-height: 400px;
+    /* Enough space for form */
+    opacity: 1;
+    margin-bottom: 20px;
+}
+
+/* Search Area */
+.search-area-sticky {
+    padding: 12px 16px;
+    background: white;
+    border-bottom: 1px solid #f1f5f9;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}

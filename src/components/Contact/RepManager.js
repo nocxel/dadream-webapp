@@ -1,9 +1,11 @@
+import './Contact.css'; // Shared styles
+
 export default class RepManager {
     constructor(store, uiManager) {
         this.store = store;
         this.ui = uiManager;
 
-        this.injectModal(); // Dynamic Injection
+        this.injectModal();
 
         // Elements
         this.btnReps = document.getElementById('btnReps');
@@ -22,11 +24,86 @@ export default class RepManager {
     injectModal() {
         if (document.getElementById('repManagerModal')) return;
         const overlay = document.getElementById('modalOverlay');
-        const template = document.getElementById('rep-manager-template');
+        if (!overlay) return;
 
-        if (!overlay || !template) return;
+        const template = `
+            <div id="repManagerModal" class="modal-card glass-panel hidden modal-flex-col contact-modal-height">
+                <div class="modal-header">
+                    <h2>담당자 관리</h2>
+                    <div class="modal-actions">
+                        <button class="close-btn"><i class="fa-solid fa-times"></i></button>
+                    </div>
+                </div>
+                <div class="modal-body no-padding modal-scroll-body">
+                    <div class="modal-sticky-header">
+                        <div class="form-section-card">
+                            <div class="form-section-header" style="justify-content: space-between;">
+                                <div style="display:flex; align-items:center; gap:8px;">
+                                    <i class="fa-solid fa-user-plus"></i>
+                                    <span>신규 담당자 등록</span>
+                                </div>
+                                <button id="btnImportContacts" class="glass-btn small-btn rep-import-btn">
+                                    <i class="fa-solid fa-address-book"></i> 연락처 가져오기
+                                </button>
+                            </div>
+                            <form id="repAddForm" class="premium-form">
+                                <input type="hidden" id="editRepId">
 
-        overlay.appendChild(template.content.cloneNode(true));
+                                <div class="input-group">
+                                    <div class="input-with-icon premium">
+                                        <i class="fa-solid fa-user input-icon"></i>
+                                        <input type="text" id="newRepName" placeholder="이름을 입력하세요"
+                                            class="glass-input premium-input" required>
+                                    </div>
+                                </div>
+
+                                <div class="input-group">
+                                    <div class="input-with-icon premium">
+                                        <i class="fa-solid fa-phone input-icon"></i>
+                                        <input type="tel" id="newRepPhone" placeholder="휴대폰 번호 (- 없이 입력)"
+                                            class="glass-input premium-input">
+                                    </div>
+                                </div>
+
+                                <div class="form-actions">
+                                    <button type="submit" id="btnRepSubmit" class="premium-btn primary">
+                                        <i class="fa-solid fa-plus"></i> 추가하기
+                                    </button>
+                                    <button type="button" id="btnRepCancelEdit" class="premium-btn secondary hidden">
+                                        취소
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <!-- Search Input Added -->
+                        <div style="margin-top:12px;">
+                            <div class="input-with-icon premium">
+                                <i class="fa-solid fa-magnifying-glass input-icon"></i>
+                                <input type="text" id="repSearchInput" placeholder="담당자 이름으로 검색..."
+                                    class="glass-input premium-input">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="timeline-container timeline-no-pad-top" id="repList">
+                        <!-- Rep Items -->
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const range = document.createRange();
+        overlay.appendChild(range.createContextualFragment(template));
+
+        // Re-query
+        this.repManagerModal = document.getElementById('repManagerModal');
+        this.repAddForm = document.getElementById('repAddForm');
+        this.repList = document.getElementById('repList');
+        this.repSearchInput = document.getElementById('repSearchInput');
+        this.btnRepSubmit = document.getElementById('btnRepSubmit');
+        this.btnRepCancelEdit = document.getElementById('btnRepCancelEdit');
+        this.editRepIdInput = document.getElementById('editRepId');
+        this.btnImportContacts = document.getElementById('btnImportContacts');
     }
 
     init() {
@@ -40,13 +117,13 @@ export default class RepManager {
         }
 
         // Add/Edit Submit
-        this.repAddForm.addEventListener('submit', (e) => this.handleSubmit(e));
+        if (this.repAddForm) this.repAddForm.addEventListener('submit', (e) => this.handleSubmit(e));
 
         // Search
-        this.repSearchInput.addEventListener('input', (e) => this.renderRepList(e.target.value));
+        if (this.repSearchInput) this.repSearchInput.addEventListener('input', (e) => this.renderRepList(e.target.value));
 
         // Cancel Edit
-        this.btnRepCancelEdit.addEventListener('click', () => this.cancelRepEdit());
+        if (this.btnRepCancelEdit) this.btnRepCancelEdit.addEventListener('click', () => this.cancelRepEdit());
 
         // Contact Import
         if (this.btnImportContacts) {
@@ -82,6 +159,7 @@ export default class RepManager {
     }
 
     async renderRepList(filterName = '') {
+        if (!this.repList) return;
         this.repList.innerHTML = '<div style="padding:20px; text-align:center;">로딩중...</div>';
         try {
             let reps = await this.store.getReps();
@@ -176,7 +254,7 @@ export default class RepManager {
 
                     let addedCount = 0;
 
-                    // Process sequentially to avoid race conditions or overwhelming DB
+                    // Process sequentially 
                     for (const c of contacts) {
                         const name = c.name ? c.name[0] : '이름없음';
                         const phoneRaw = c.tel ? c.tel[0] : '';

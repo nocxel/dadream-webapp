@@ -1,0 +1,42 @@
+/* Admin Component Styles */
+
+.admin-modal-height {
+    max-height: 90vh;
+}
+
+.admin-tabs {
+    margin: 16px;
+}
+
+/* Reusing timeline-item from Contact/Global if possible but redefining briefly for independence if needed,
+   however user asked for style.css to manage common styles and components to call them.
+   Assumed generic classes are in style.css or shared.
+   But specific admin styles here. */
+
+.timeline-marker {
+    width: 4px;
+    margin-right: 12px;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.timeline-content {
+    flex: 1;
+}
+
+.timeline-content h4 {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    color: #333;
+}
+
+/* Timeline Item (if not global) */
+.timeline-item {
+    display: flex;
+    padding: 16px;
+    background: #f8fafc;
+    /* Slightly different for Admin history */
+    border-radius: 12px;
+    margin-bottom: 10px;
+    align-items: stretch;
+}

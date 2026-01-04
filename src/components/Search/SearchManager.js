@@ -1,11 +1,17 @@
+import './Search.css';
+
 export default class SearchManager {
     constructor(store, mapRenderer, uiManager) {
         this.store = store;
         this.mapRenderer = mapRenderer;
         this.ui = uiManager;
 
+        this.injectUI();
+
         this.globalSearch = document.getElementById('globalSearch');
         this.searchResults = document.getElementById('searchResults');
+
+        // These are injected, so re-query only when needed or after inject
         this.btnClearPath = document.getElementById('btnClearPath');
 
         this.searchTimeout = null;
@@ -13,38 +19,87 @@ export default class SearchManager {
         this.init();
     }
 
+    injectUI() {
+        if (document.getElementById('trajectorySidebar')) return;
+
+        const template = `
+            <!-- Clear Path Button -->
+            <button id="btnClearPath" class="clear-path-btn-fixed hidden">
+                <i class="fa-solid fa-times-circle" style="color:#ef4444; font-size:16px;"></i>
+                <span>동선 지우기 (검색 종료)</span>
+            </button>
+
+            <!-- Trajectory Sidebar -->
+            <div id="trajectorySidebar" class="sidebar hidden collapsed">
+                <div class="sidebar-wrapper">
+                    <!-- Mobile Drag Handle -->
+                    <div id="mobileDragHandle" class="sheet-handle-area">
+                        <div class="sheet-handle-bar"></div>
+                    </div>
+
+                    <div class="sidebar-header">
+                        <h3 id="trajectoryRepName">이동 경로</h3>
+                        <button id="btnCloseTrajectory" class="glass-btn icon-only small-btn" style="display:none;"><i
+                                class="fa-solid fa-times"></i></button>
+                    </div>
+                    <div class="sidebar-body" id="trajectoryList">
+                        <!-- Timeline Items -->
+                    </div>
+                </div>
+
+                <button id="btnToggleSidebar" class="sidebar-toggle glass-btn">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+            </div>
+        `;
+
+        const range = document.createRange();
+        document.body.appendChild(range.createContextualFragment(template));
+
+        this.btnClearPath = document.getElementById('btnClearPath');
+    }
+
     init() {
-        this.globalSearch.addEventListener('input', (e) => {
-            clearTimeout(this.searchTimeout);
-            this.searchTimeout = setTimeout(() => this.performSearch(e.target.value), 300);
-        });
+        if (this.globalSearch) {
+            this.globalSearch.addEventListener('input', (e) => {
+                clearTimeout(this.searchTimeout);
+                this.searchTimeout = setTimeout(() => this.performSearch(e.target.value), 300);
+            });
+        }
 
-        this.btnClearPath.addEventListener('click', () => {
-            this.mapRenderer.clearPath();
-            // Clear temp markers manually if not supported by renderer
-            if (this.mapRenderer.tempMarkers) {
-                this.mapRenderer.tempMarkers.forEach(m => m.setMap(null));
-                this.mapRenderer.tempMarkers = [];
-            } else if (this.mapRenderer.tempLayer) {
-                this.mapRenderer.tempLayer.clearLayers();
-            }
+        if (this.btnClearPath) {
+            this.btnClearPath.addEventListener('click', () => {
+                try {
+                    this.mapRenderer.clearPath();
+                    // Clear temp markers manually if not supported by renderer
+                    if (this.mapRenderer.tempMarkers) {
+                        this.mapRenderer.tempMarkers.forEach(m => m.setMap(null));
+                        this.mapRenderer.tempMarkers = [];
+                    } else if (this.mapRenderer.tempLayer) {
+                        this.mapRenderer.tempLayer.clearLayers();
+                    }
 
-            this.mapRenderer.setBaseLayerOpacity(1.0);
-            this.globalSearch.value = '';
-            this.searchResults.classList.add('hidden');
-            this.btnClearPath.classList.add('hidden');
+                    this.mapRenderer.setBaseLayerOpacity(1.0);
+                } catch (e) {
+                    console.error("Error clearing search path:", e);
+                } finally {
+                    if (this.globalSearch) this.globalSearch.value = '';
+                    if (this.searchResults) this.searchResults.classList.add('hidden');
+                    this.btnClearPath.classList.add('hidden');
 
-            // Close Sidebar Completely and Clear Data
-            const sidebar = document.getElementById('trajectorySidebar');
-            const trajectoryList = document.getElementById('trajectoryList');
-            if (sidebar) {
-                sidebar.classList.add('hidden'); // Hide completely
-                sidebar.classList.add('collapsed'); // Reset to collapsed state for clean accumulation if needed, or just hidden
-            }
-            if (trajectoryList) {
-                trajectoryList.innerHTML = ''; // Clear data
-            }
-        });
+                    // Close Sidebar Completely and Clear Data
+                    const sidebar = document.getElementById('trajectorySidebar');
+                    const trajectoryList = document.getElementById('trajectoryList');
+                    if (sidebar) {
+                        sidebar.classList.add('hidden'); // Hide completely
+                        sidebar.classList.add('collapsed'); // Reset to collapsed state
+                    }
+                    if (trajectoryList) {
+                        trajectoryList.innerHTML = ''; // Clear data
+                    }
+                }
+            });
+        }
 
         this.initMobileDrag();
     }
@@ -99,35 +154,42 @@ export default class SearchManager {
         this.searchResults.innerHTML = '<div style="padding:10px;">검색중...</div>';
         this.searchResults.classList.remove('hidden');
 
-        // 1. Reps (Local)
-        const reps = this.store.getReps().filter(r => r.name.includes(query));
+        try {
+            // 1. Contacts (Local)
+            const allContacts = await this.store.getContacts();
+            const contacts = allContacts.filter(c => (c.name || '').includes(query));
 
-        // 2. Pins (Local)
-        const pins = this.store.getPins().filter(p => p.siteName.includes(query) || p.address.includes(query));
+            // 2. Pins (Local)
+            const allPins = await this.store.getPins();
+            const pins = allPins.filter(p => (p.title || '').includes(query) || (p.address || '').includes(query));
 
-        // 3. Naver Geocode (Remote)
-        if (!naver.maps.Service || !naver.maps.Service.geocode) {
-            this.renderSearchResults(reps, pins, []);
-            return;
-        }
-
-        naver.maps.Service.geocode({
-            query: query
-        }, (status, response) => {
-            let places = [];
-            if (status === naver.maps.Service.Status.OK) {
-                const result = response.v2;
-                if (result.addresses.length > 0) {
-                    places = result.addresses;
-                }
+            // 3. Naver Geocode (Remote)
+            if (!naver.maps.Service || !naver.maps.Service.geocode) {
+                this.renderSearchResults(contacts, pins, []);
+                return;
             }
-            this.renderSearchResults(reps, pins, places);
-        });
+
+            naver.maps.Service.geocode({
+                query: query
+            }, (status, response) => {
+                let places = [];
+                if (status === naver.maps.Service.Status.OK) {
+                    const result = response.v2;
+                    if (result.addresses.length > 0) {
+                        places = result.addresses;
+                    }
+                }
+                this.renderSearchResults(contacts, pins, places);
+            });
+        } catch (error) {
+            console.error("Search failed", error);
+            this.searchResults.innerHTML = '<div style="padding:10px; color:red;">검색 오류</div>';
+        }
     }
 
-    renderSearchResults(reps, pins, places) {
+    renderSearchResults(contacts, pins, places) {
         this.searchResults.innerHTML = '';
-        const hasResults = (reps.length + pins.length + places.length) > 0;
+        const hasResults = (contacts.length + pins.length + places.length) > 0;
 
         if (!hasResults) {
             this.searchResults.innerHTML = `
@@ -199,7 +261,7 @@ export default class SearchManager {
                         <i class="fa-solid fa-house"></i>
                     </div>
                     <div class="search-info">
-                        <strong class="search-title">${p.siteName}</strong>
+                        <strong class="search-title">${p.title}</strong>
                         <span class="search-sub">${p.address}</span>
                     </div>
                 `;
@@ -212,14 +274,14 @@ export default class SearchManager {
             });
         }
 
-        // 3. REPRESENTATIVES
-        if (reps.length > 0) {
+        // 3. CONTACTS
+        if (contacts.length > 0) {
             const h = document.createElement('div');
             h.className = 'search-section-header';
-            h.innerHTML = '<i class="fa-solid fa-users"></i> 담당자';
+            h.innerHTML = '<i class="fa-solid fa-briefcase"></i> 거래처(담당자)';
             this.searchResults.appendChild(h);
 
-            reps.forEach(r => {
+            contacts.forEach(c => {
                 const el = document.createElement('div');
                 el.className = 'search-item';
                 el.innerHTML = `
@@ -227,24 +289,27 @@ export default class SearchManager {
                         <i class="fa-solid fa-user"></i>
                     </div>
                     <div class="search-info">
-                        <strong class="search-title">${r.name}</strong>
-                        <span class="search-sub">${r.phone || '연락처 없음'}</span>
+                        <strong class="search-title">${c.name}</strong>
+                        <span class="search-sub">${c.phone || '연락처 없음'}</span>
                     </div>
                 `;
                 el.onclick = () => {
-                    this.globalSearch.value = r.name;
+                    this.globalSearch.value = c.name;
                     this.searchResults.classList.add('hidden');
-                    this.showTrajectory(r.id);
+                    this.showTrajectory(c.id);
                 };
                 this.searchResults.appendChild(el);
             });
         }
     }
 
-    showTrajectory(repId) {
-        const logs = this.store.getRepLogs(repId);
-        const activePin = this.store.getRepActivePin(repId);
-        const rep = this.store.getRep(repId);
+    async showTrajectory(contactId) {
+        // Parallel Fetch: Logs, Active Pin, Contact Info
+        const [logs, activePin, contact] = await Promise.all([
+            this.store.getContactLogs(contactId),
+            this.store.getContactActivePin(contactId),
+            this.store.getContact(contactId)
+        ]);
 
         // UI Setup
         const sidebar = document.getElementById('trajectorySidebar');
@@ -273,26 +338,28 @@ export default class SearchManager {
         sidebar.classList.remove('collapsed'); // Expand
         btnToggleSidebar.querySelector('i').className = 'fa-solid fa-chevron-left';
 
-        trajectoryRepName.textContent = `${rep ? rep.name : 'Unknown'}님의 이동 경로`;
+        trajectoryRepName.textContent = `${contact ? contact.name : 'Unknown'}님의 현장 기록`;
         trajectoryList.innerHTML = '';
 
-        // Prepare data
-        const validLogs = logs.map(l => {
-            const pin = this.store.getPin(l.pinId);
+        // Prepare data with Pin Details
+        const validLogs = await Promise.all(logs.map(async l => {
+            const pin = await this.store.getPin(l.pinId);
             if (!pin) return null;
-            const isCurrent = (pin.status === 'active' && pin.repId === repId);
+            const isCurrent = (pin.status === 'active' && pin.contactId === contactId);
             return {
                 ...l,
                 lat: pin.lat,
                 lng: pin.lng,
-                projectName: pin.siteName,
+                projectName: pin.title,
                 notes: pin.notes,
                 isCurrent: isCurrent
             };
-        }).filter(Boolean);
+        }));
+
+        const filteredLogs = validLogs.filter(Boolean);
 
         // Sort by Time DESC for List
-        const sortedLogs = [...validLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const sortedLogs = [...filteredLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
 
         if (sortedLogs.length === 0) {
             trajectoryList.innerHTML = '<div style="padding:20px; text-align:center; color:#666;">기록이 없습니다.</div>';
@@ -302,17 +369,17 @@ export default class SearchManager {
 
         // Render List
         sortedLogs.forEach((log, i) => {
-            const originalIndex = validLogs.indexOf(log);
+            const originalIndex = filteredLogs.indexOf(log);
 
             const item = document.createElement('div');
             item.className = 'traj-item';
-            const timeStr = new Date(log.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+            const timeStr = new Date(log.date).toLocaleDateString('ko-KR') + ' ' + new Date(log.date).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
 
             item.innerHTML = `
                 <div class="traj-index">${originalIndex + 1}</div>
                 <div class="traj-info" style="flex:1;">
                     <h4>${log.projectName}</h4>
-                    <p><i class="fa-regular fa-clock"></i> ${timeStr} ${log.isCurrent ? '<span style="color:#4f46e5; font-weight:bold;">(활동중)</span>' : ''}</p>
+                    <p><i class="fa-regular fa-clock"></i> ${timeStr} ${log.isCurrent ? '<span style="color:#4f46e5; font-weight:bold;">(현재 담당)</span>' : ''}</p>
                 </div>
                 <button class="glass-btn icon-only small-btn delete-log-btn" style="color:#ef4444; margin-left:8px;" title="기록 삭제">
                     <i class="fa-solid fa-trash"></i>
@@ -328,11 +395,11 @@ export default class SearchManager {
 
             // Delete Button Click
             const btnDelete = item.querySelector('.delete-log-btn');
-            btnDelete.onclick = (e) => {
+            btnDelete.onclick = async (e) => {
                 e.stopPropagation(); // Prevent item click
                 if (confirm('정말 이 방문 기록을 삭제하시겠습니까?')) {
-                    this.store.deleteLog(log.id);
-                    this.showTrajectory(repId); // Refresh
+                    await this.store.deleteLog(log.id);
+                    this.showTrajectory(contactId); // Refresh
                 }
             };
 
@@ -340,17 +407,22 @@ export default class SearchManager {
         });
 
         // Map Action
-        if (validLogs.length > 0) {
+        if (filteredLogs.length > 0) {
             this.mapRenderer.setBaseLayerOpacity(0.3);
-            this.mapRenderer.drawPath(validLogs);
+            this.mapRenderer.drawPath(filteredLogs);
             this.btnClearPath.classList.remove('hidden');
 
             // Collect all points for bounds
-            const points = validLogs.map(l => new naver.maps.LatLng(l.lat, l.lng));
+            const points = filteredLogs.map(l => new naver.maps.LatLng(l.lat, l.lng));
             if (activePin) points.push(new naver.maps.LatLng(activePin.lat, activePin.lng));
 
-            // Auto Fit
-            this.mapRenderer.fitBounds(points);
+            // Auto Fit with Responsive Padding
+            const isMobile = window.innerWidth <= 600;
+            const padding = isMobile
+                ? { top: 50, bottom: 300, left: 20, right: 20 }
+                : { top: 50, bottom: 50, left: 350, right: 50 }; // 350px = 320px sidebar + 30px buffer
+
+            this.mapRenderer.fitBounds(points, padding);
         }
     }
 }

@@ -1,12 +1,12 @@
 export default class UIManager {
     constructor() {
         this.overlay = document.getElementById('modalOverlay');
-        this.closeBtns = document.querySelectorAll('.close-btn');
 
-        // Initial Bindings
-        this.closeBtns.forEach(btn => btn.addEventListener('click', () => this.closeAllModals()));
+        // Event Delegation for Close Buttons (Dynamic Content)
         this.overlay.addEventListener('click', (e) => {
-            if (e.target === this.overlay) this.closeAllModals();
+            if (e.target === this.overlay || e.target.closest('.close-btn')) {
+                this.closeAllModals();
+            }
         });
     }
 
