@@ -51,4 +51,60 @@ if ('serviceWorker' in navigator) {
                 console.log('SW registration failed: ', registrationError);
             });
     });
+
+    // Handle PWA Install Prompt
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        // Prevent Chrome 67 and earlier from automatically showing the prompt
+        e.preventDefault();
+        // Stash the event so it can be triggered later.
+        deferredPrompt = e;
+
+        // Show your own UI to notify the user they can add to home screen
+        // Create a custom install button if it doesn't exist
+        if (!document.getElementById('pwaInstallBtn')) {
+            const btn = document.createElement('button');
+            btn.id = 'pwaInstallBtn';
+            btn.textContent = '앱 설치하기';
+            btn.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 9999;
+                background: #333;
+                color: white;
+                border: none;
+                padding: 12px 24px;
+                border-radius: 50px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                font-weight: bold;
+                cursor: pointer;
+            `;
+
+            btn.addEventListener('click', () => {
+                // Hide our user interface that shows our A2HS button
+                btn.style.display = 'none';
+                // Show the prompt
+                deferredPrompt.prompt();
+                // Wait for the user to respond to the prompt
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the A2HS prompt');
+                    } else {
+                        console.log('User dismissed the A2HS prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            });
+
+            document.body.appendChild(btn);
+        }
+    });
+
+    window.addEventListener('appinstalled', () => {
+        console.log('PWA installed');
+        const btn = document.getElementById('pwaInstallBtn');
+        if (btn) btn.style.display = 'none';
+    });
 }
