@@ -135,47 +135,67 @@ export default class AuthManager {
         // 1. FAST PATH: Optimistic UI (Cache)
         const cachedRep = this._loadCachedRep();
         if (cachedRep && cachedRep.email === email) {
+            console.log("⚡ [Auth] Fast Path: Restoring from cache");
             this.onLoginSuccess({ ...session.user, ...cachedRep }, false);
+
+            // Fire-and-forget background check
+            this._verifySessionBackground(session, cachedRep);
+            this.isProcessingLogin = false; // Release lock logic
+            return;
         }
 
-        // 2. SLOW PATH: Background Revalidation
+        // 2. SLOW PATH: No cache, must wait for DB
         try {
-            // Race against the store call
-            const dbPromise = this.store.checkWhitelist(email);
-            // 15s timeout to be safe (relaxed from 10s)
-            const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error("DB_TIMEOUT")), 15000)
-            );
-
-            const repRow = await Promise.race([dbPromise, timeoutPromise]);
+            console.log("⏳ [Auth] Slow Path: Verifying with DB...");
+            const repRow = await this.store.checkWhitelist(email);
 
             if (!repRow) {
-                // IMPORTANT: Only logout if explicit "null" (User not found/invalid)
                 console.warn("❌ Profile not found (Invalid User). Logging out.");
                 this._clearCachedRep();
                 await supabase.auth.signOut();
-                // onLogoutSuccess will be triggered by SIGNED_OUT event
                 return;
             }
 
-            // Valid User -> Update Cache & UI
             this._saveCachedRep(repRow);
             const fullUser = { ...session.user, ...repRow };
             await this.onLoginSuccess(fullUser);
 
         } catch (err) {
-            console.error("⚠️ Session Verification Failed:", err.message);
-
-            // Offline Mode Logic:
-            // If failed due to Network/Timeout, BUT we have cache -> Stay Logged In.
-            if (!cachedRep) {
-                // No cache + Network Fail = Cannot verify user.
-                alert(`서버 연결 실패: ${err.message}`);
-                // Only forced logout if we absolutely can't verify anything
-                this.onLogoutSuccess();
-            }
+            console.error("⚠️ Login Failed:", err.message);
+            alert(`로그인 실패: ${err.message}`);
+            this.onLogoutSuccess();
         } finally {
             this.isProcessingLogin = false;
+        }
+    }
+
+    async _verifySessionBackground(session, cachedRep) {
+        try {
+            // Race against the store call
+            const dbPromise = this.store.checkWhitelist(session.user.email);
+            // 10s timeout for background check
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error("BG_DB_TIMEOUT")), 10000)
+            );
+
+            const repRow = await Promise.race([dbPromise, timeoutPromise]);
+
+            if (!repRow) {
+                console.warn("❌ [Background] Profile invalid or deleted. Forcing logout.");
+                alert("사용자 권한이 변경되어 로그아웃됩니다.");
+                this._clearCachedRep();
+                await supabase.auth.signOut();
+                // window.location.reload(); // Optional
+            } else {
+                console.log("✅ [Background] Session verified. Updating cache.");
+                // Update cache with latest data
+                this._saveCachedRep(repRow);
+                // Optional: Update store user if data changed significantly? 
+                // Mostly cache is for next reload using fresh data.
+            }
+        } catch (err) {
+            console.warn(`⚠️ [Background] Verification warning: ${err.message}`);
+            // Do NOT logout on timeout/network error. optimizing for offline usage.
         }
     }
 

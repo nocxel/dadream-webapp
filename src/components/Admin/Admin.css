@@ -1,7 +1,16 @@
 /* Admin Component Styles */
 
 .admin-modal-height {
-    max-height: 90vh;
+    height: 80vh;
+    /* Fixed height */
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-modal-height .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    /* Scroll internally */
 }
 
 .admin-tabs {

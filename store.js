@@ -16,6 +16,7 @@ class Store {
         this.contacts = [];
         this.pins = [];
         this.logs = []; // Optional but good for consistency
+        this.isDataLoaded = false;
     }
 
     // Called by AuthManager on successful login
@@ -48,7 +49,7 @@ class Store {
             // Pins (Raw fetch, no join needed if we merge in memory)
             supabase.from('pins').select('*').eq('rep_id', myId).order('created_at', { ascending: false }),
             // Logs (Limit 100 or something? For now fetch all)
-            supabase.from('logs').select('*, pins(title), contacts(name)').eq('rep_id', myId).order('created_at', { ascending: false })
+            supabase.from('logs').select('*').eq('rep_id', myId).order('created_at', { ascending: false })
         ]);
 
         if (contactsResult.error) throw contactsResult.error;
@@ -59,7 +60,9 @@ class Store {
         this.pins = pinsResult.data || [];
         this.logs = logsResult.data || []; // Logs might need join data preserved
 
+        this.isDataLoaded = true;
         console.log(`✅ [Store] Loaded: ${this.contacts.length} Contacts, ${this.pins.length} Pins`);
+        window.dispatchEvent(new CustomEvent('dadream-data-loaded'));
     }
 
     async checkConnection() {
@@ -96,6 +99,15 @@ class Store {
             .eq('email', email)
             .select().single();
         if (error) throw error;
+        return data;
+    }
+
+    async getReps() {
+        const { data, error } = await supabase.from('reps').select('*');
+        if (error) {
+            console.error("Failed to fetch reps:", error);
+            return [];
+        }
         return data;
     }
 

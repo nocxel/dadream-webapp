@@ -158,7 +158,18 @@ export default class PinManager {
         window.completePin = (id) => this.completePin(id);
 
         this.bindMapEvents();
-        setTimeout(() => this.refreshMapMarkers(), 500); // Initial Load
+        this.bindMapEvents();
+        // Event-Driven Rendering: Wait for data
+        window.addEventListener('dadream-data-loaded', () => {
+            console.log("👂 [PinManager] Data Loaded Signal Received. Rendering...");
+            this.refreshMapMarkers();
+        });
+
+        // Initial Check: If data already loaded before we got here
+        if (this.store.isDataLoaded) {
+            console.log("⚡ [PinManager] Data already ready. Immediate Render.");
+            this.refreshMapMarkers();
+        }
     }
 
     bindMapEvents() {
