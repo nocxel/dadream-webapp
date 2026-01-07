@@ -127,3 +127,4 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+probe_db.js
