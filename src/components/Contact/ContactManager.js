@@ -24,7 +24,7 @@ export default class ContactManager {
         const overlay = document.getElementById('modalOverlay');
         if (!overlay) return;
 
-        const contactTemplate = `
+        const contactMainTemplate = `
             <div id="contactManagerModal" class="modal-card glass-panel hidden contact-modal-height">
                 <div class="modal-header">
                     <h2>거래처(고객) 관리</h2>
@@ -42,50 +42,6 @@ export default class ContactManager {
                     </div>
                 </div>
 
-                <!-- Add Form Container (Expandable) -->
-                <div id="contactAddFormContainer" class="add-form-container">
-                    <div class="form-section-card">
-                         <div class="form-section-header" style="justify-content: space-between; margin-bottom: 16px;">
-                            <div style="display:flex; align-items:center; gap:8px;">
-                                <i class="fa-solid fa-user-plus" style="color:var(--primary-color);"></i>
-                                <span style="font-weight:bold;">새 거래처 등록</span>
-                            </div>
-                            <button id="btnImportContactsVal" class="glass-btn small-btn rep-import-btn">
-                                <i class="fa-solid fa-address-book"></i> 연락처 가져오기
-                            </button>
-                        </div>
-
-                        <form id="contactAddForm" class="premium-form">
-                            <input type="hidden" id="editContactId">
-
-                            <div class="input-group">
-                                <div class="input-with-icon premium">
-                                    <i class="fa-solid fa-briefcase input-icon"></i>
-                                    <input type="text" id="newContactName" placeholder="거래처명 / 담당자명"
-                                        class="glass-input premium-input" required>
-                                </div>
-                            </div>
-
-                            <div class="input-group">
-                                <div class="input-with-icon premium">
-                                    <i class="fa-solid fa-phone input-icon"></i>
-                                    <input type="tel" id="newContactPhone" placeholder="연락처 (- 없이 입력)"
-                                        class="glass-input premium-input">
-                                </div>
-                            </div>
-
-                            <div class="form-actions" style="margin-top:20px;">
-                                <button type="submit" id="btnContactSubmit" class="premium-btn primary">
-                                    <i class="fa-solid fa-check"></i> 저장하기
-                                </button>
-                                <button type="button" id="btnContactCancelEdit" class="premium-btn secondary">
-                                    취소 / 닫기
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
                 <!-- List Content -->
                 <div class="timeline-container timeline-no-pad-top" id="contactList">
                     <!-- Contact Items -->
@@ -95,6 +51,53 @@ export default class ContactManager {
                 <button id="fabAddContact" class="fab-add-contact">
                     <i class="fa-solid fa-plus"></i>
                 </button>
+            </div>
+        `;
+
+        const contactInputTemplate = `
+            <div id="contactInputModal" class="modal-card glass-panel hidden" style="z-index: 200; max-height: 80vh;">
+                <div class="modal-header">
+                    <h2 id="contactInputModalTitle">새 거래처 등록</h2>
+                    <div class="modal-actions">
+                        <button class="close-btn" id="btnContactInputClose"><i class="fa-solid fa-times"></i></button>
+                    </div>
+                </div>
+                <div class="modal-body">
+                    <div class="form-section-header" style="justify-content: flex-end; margin-bottom: 16px;">
+                        <button id="btnImportContactsVal" class="glass-btn small-btn rep-import-btn">
+                            <i class="fa-solid fa-address-book"></i> 연락처 가져오기
+                        </button>
+                    </div>
+                    
+                    <form id="contactAddForm" class="premium-form">
+                        <input type="hidden" id="editContactId">
+
+                        <div class="input-group">
+                            <div class="input-with-icon premium">
+                                <i class="fa-solid fa-briefcase input-icon"></i>
+                                <input type="text" id="newContactName" placeholder="거래처명 / 담당자명"
+                                    class="glass-input premium-input" required>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <div class="input-with-icon premium">
+                                <i class="fa-solid fa-phone input-icon"></i>
+                                <input type="tel" id="newContactPhone" placeholder="연락처 (- 없이 입력)"
+                                    class="glass-input premium-input">
+                            </div>
+                        </div>
+
+                        <div class="form-actions" style="margin-top:20px;">
+                            <button type="submit" id="btnContactSubmit" class="premium-btn primary">
+                                <i class="fa-solid fa-check"></i> 저장하기
+                            </button>
+                            <button type="button" id="btnContactCancelEdit" class="premium-btn secondary">
+                                취소 / 닫기
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         `;
 
@@ -117,15 +120,16 @@ export default class ContactManager {
         `;
 
         const range = document.createRange();
-        overlay.appendChild(range.createContextualFragment(contactTemplate));
+        overlay.appendChild(range.createContextualFragment(contactMainTemplate));
+        overlay.appendChild(range.createContextualFragment(contactInputTemplate));
         overlay.appendChild(range.createContextualFragment(clientTemplate));
 
         this.listElement = document.getElementById('contactList');
         this.addForm = document.getElementById('contactAddForm');
         this.searchInput = document.getElementById('contactSearchInput');
-        this.addFormContainer = document.getElementById('contactAddFormContainer');
         this.fabAdd = document.getElementById('fabAddContact');
         this.btnCancel = document.getElementById('btnContactCancelEdit');
+        this.btnCloseInput = document.getElementById('btnContactInputClose');
     }
 
     async init() {
@@ -134,7 +138,6 @@ export default class ContactManager {
             btnContacts.addEventListener('click', () => {
                 this.ui.openModal('contactManagerModal');
                 this.renderContactList();
-                this.closeAddForm(); // Start with list view
             });
         }
 
@@ -145,9 +148,17 @@ export default class ContactManager {
         if (this.btnCancel) {
             this.btnCancel.addEventListener('click', () => this.cancelEdit());
         }
+        
+        if (this.btnCloseInput) {
+            this.btnCloseInput.addEventListener('click', () => this.cancelEdit());
+        }
 
         if (this.fabAdd) {
-            this.fabAdd.addEventListener('click', () => this.openAddForm());
+            this.fabAdd.addEventListener('click', () => {
+                this.isEditing = false;
+                this.editId = null;
+                this.openAddForm();
+            });
         }
 
         if (this.searchInput) {
@@ -163,20 +174,19 @@ export default class ContactManager {
     }
 
     openAddForm() {
-        if (this.addFormContainer) {
-            this.addFormContainer.classList.add('open');
-            // FAB Hidden when form is open to avoid clutter? Or keep it? kept for now.
-            this.fabAdd.classList.add('hidden');
-            document.getElementById('newContactName').focus();
+        // Update title dynamically based on insert vs edit
+        const titleEl = document.getElementById('contactInputModalTitle');
+        if (titleEl) {
+            titleEl.textContent = this.isEditing ? '거래처 정보 수정' : '새 거래처 등록';
         }
+        
+        this.ui.openModal('contactInputModal');
+        setTimeout(() => document.getElementById('newContactName').focus(), 100);
     }
 
     closeAddForm() {
-        if (this.addFormContainer) {
-            this.addFormContainer.classList.remove('open');
-            this.fabAdd.classList.remove('hidden');
-            this.cancelEdit(false); // Reset form but don't toggle UI again
-        }
+        this.ui.closeModal('contactInputModal');
+        this.cancelEdit(false); // Reset form but don't toggle UI again
     }
 
     async handleSubmit(e) {

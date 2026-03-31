@@ -3,9 +3,11 @@
 /* 1. Modal Layout (Mobile Full-screen, Desktop Card) */
 .contact-modal-height {
     /* Desktop Default */
-    max-height: 85vh;
+    height: 80vh; /* Fixed height! */
+    max-height: 80vh;
     display: flex;
     flex-direction: column;
+    overflow: hidden; /* Important so inner scroll takes over */
 }
 
 @media (max-width: 600px) {
