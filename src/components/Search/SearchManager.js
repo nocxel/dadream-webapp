@@ -370,6 +370,8 @@ export default class SearchManager {
         // Render List
         sortedLogs.forEach((log, i) => {
             const originalIndex = filteredLogs.indexOf(log);
+            const isFirst = i === 0;
+            const isLast = i === sortedLogs.length - 1;
 
             const item = document.createElement('div');
             item.className = 'traj-item';
@@ -380,6 +382,14 @@ export default class SearchManager {
                 <div class="traj-info" style="flex:1;">
                     <h4>${log.projectName}</h4>
                     <p><i class="fa-regular fa-clock"></i> ${timeStr} ${log.isCurrent ? '<span style="color:#4f46e5; font-weight:bold;">(현재 담당)</span>' : ''}</p>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px; margin-left:8px;">
+                    <button class="glass-btn icon-only up-log-btn" style="font-size:10px; width:24px; height:24px; padding:0; ${isFirst ? 'opacity:0.3; cursor:not-allowed;' : ''}" title="위로">
+                        <i class="fa-solid fa-chevron-up"></i>
+                    </button>
+                    <button class="glass-btn icon-only down-log-btn" style="font-size:10px; width:24px; height:24px; padding:0; ${isLast ? 'opacity:0.3; cursor:not-allowed;' : ''}" title="아래로">
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
                 </div>
                 <button class="glass-btn icon-only small-btn delete-log-btn" style="color:#ef4444; margin-left:8px;" title="기록 삭제">
                     <i class="fa-solid fa-trash"></i>
@@ -392,6 +402,29 @@ export default class SearchManager {
                 this.mapRenderer.flyTo(log.lat, log.lng, 15);
                 this.mapRenderer.triggerPathMarkerClick(originalIndex);
             });
+
+            // Up/Down Buttons
+            const btnUp = item.querySelector('.up-log-btn');
+            if(btnUp) btnUp.onclick = async (e) => {
+                e.stopPropagation();
+                if (isFirst) return;
+                const prevLog = sortedLogs[i - 1];
+                try {
+                    await this.store.swapOrder('logs', log.id, prevLog.id);
+                    this.showTrajectory(contactId); // Refresh
+                } catch(err) { alert(err.message); }
+            };
+
+            const btnDown = item.querySelector('.down-log-btn');
+            if(btnDown) btnDown.onclick = async (e) => {
+                e.stopPropagation();
+                if (isLast) return;
+                const nextLog = sortedLogs[i + 1];
+                try {
+                    await this.store.swapOrder('logs', log.id, nextLog.id);
+                    this.showTrajectory(contactId); // Refresh
+                } catch(err) { alert(err.message); }
+            };
 
             // Delete Button Click
             const btnDelete = item.querySelector('.delete-log-btn');

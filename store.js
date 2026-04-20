@@ -396,6 +396,34 @@ class Store {
         return true;
     }
 
+    async swapOrder(table, id1, id2) {
+        const array = table === 'pins' ? this.pins : this.logs;
+        const item1 = array.find(i => i.id === id1);
+        const item2 = array.find(i => i.id === id2);
+
+        if (!item1 || !item2) throw new Error("해당 항목을 찾을 수 없습니다.");
+
+        const time1 = item1.created_at;
+        const time2 = item2.created_at;
+
+        // DB Update
+        const [res1, res2] = await Promise.all([
+            supabase.from(table).update({ created_at: time2 }).eq('id', id1),
+            supabase.from(table).update({ created_at: time1 }).eq('id', id2)
+        ]);
+
+        if (res1.error) throw res1.error;
+        if (res2.error) throw res2.error;
+
+        // Memory Update
+        item1.created_at = time2;
+        item2.created_at = time1;
+
+        // Re-sort memory array DESC
+        array.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        return true;
+    }
 
     // ===========================
     // Helpers

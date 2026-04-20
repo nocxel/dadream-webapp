@@ -97,21 +97,50 @@ export default class AdminManager {
             if (filter === 'all') {
                 const logs = await this.store.getLogs(); // Fetches all logs sorted by ID desc
 
-                for (const l of logs) {
+                for (let i = 0; i < logs.length; i++) {
+                    const l = logs[i];
                     const diffDiv = document.createElement('div');
                     diffDiv.className = 'timeline-item';
+                    
+                    const isFirst = i === 0;
+                    const isLast = i === logs.length - 1;
 
                     diffDiv.innerHTML = `
                         <div class="timeline-marker" style="background:#9ca3af"></div>
-                        <div class="timeline-content">
-                            <div style="display:flex; justify-content:space-between;">
+                        <div class="timeline-content" style="display:flex; align-items:flex-start;">
+                            <div style="flex:1;">
                                 <h4>${l.projectName}</h4>
-                                <button onclick="window.deleteLog('${l.id}')" style="color:#ef4444; border:none; background:none; cursor:pointer;" title="로그 삭제"><i class="fa-solid fa-trash"></i></button>
+                                <p style="font-size:12px; color:#666;">${Utils.formatDate(l.date)} ${Utils.formatTime(l.date)}</p>
+                                <p style="font-size:13px;">담당자: ${l.contactName || '알수없음'}</p>
                             </div>
-                            <p style="font-size:12px; color:#666;">${Utils.formatDate(l.date)} ${Utils.formatTime(l.date)}</p>
-                            <p style="font-size:13px;">담당자: ${l.contactName || '알수없음'}</p>
+                            <div style="display:flex; flex-direction:column; gap:4px; margin-left:8px; margin-right:8px;">
+                                <button class="glass-btn icon-only up-btn" style="font-size:10px; width:24px; height:24px; padding:0; ${isFirst ? 'opacity:0.3; cursor:not-allowed;' : ''}" title="위로"><i class="fa-solid fa-chevron-up"></i></button>
+                                <button class="glass-btn icon-only down-btn" style="font-size:10px; width:24px; height:24px; padding:0; ${isLast ? 'opacity:0.3; cursor:not-allowed;' : ''}" title="아래로"><i class="fa-solid fa-chevron-down"></i></button>
+                            </div>
+                            <button onclick="window.deleteLog('${l.id}')" style="color:#ef4444; border:none; background:none; cursor:pointer; padding-top:4px;" title="로그 삭제"><i class="fa-solid fa-trash"></i></button>
                         </div>
                      `;
+                    
+                    const btnUp = diffDiv.querySelector('.up-btn');
+                    if (btnUp) btnUp.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (isFirst) return;
+                        try {
+                            await this.store.swapOrder('logs', l.id, logs[i - 1].id);
+                            this.renderAdminHistory();
+                        } catch(err) { alert(err.message); }
+                    };
+
+                    const btnDown = diffDiv.querySelector('.down-btn');
+                    if (btnDown) btnDown.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (isLast) return;
+                        try {
+                            await this.store.swapOrder('logs', l.id, logs[i + 1].id);
+                            this.renderAdminHistory();
+                        } catch(err) { alert(err.message); }
+                    };
+
                     this.adminTimeline.appendChild(diffDiv);
                 }
             } else {
@@ -119,9 +148,13 @@ export default class AdminManager {
                 if (filter === 'active') pins = pins.filter(p => p.status === 'active');
                 if (filter === 'new') pins = pins.filter(p => p.status === 'new');
 
-                pins.forEach(p => {
+                for (let i = 0; i < pins.length; i++) {
+                    const p = pins[i];
                     const div = document.createElement('div');
                     div.className = 'timeline-item';
+                    
+                    const isFirst = i === 0;
+                    const isLast = i === pins.length - 1;
 
                     let infoHtml = '';
                     if (p.status === 'active') {
@@ -132,14 +165,41 @@ export default class AdminManager {
 
                     div.innerHTML = `
                         <div class="timeline-marker" style="background:${p.status === 'active' ? '#4f46e5' : '#ef4444'}"></div>
-                        <div class="timeline-content">
-                            <h4>${p.title} <span style="font-size:11px;">(${p.status})</span></h4>
-                            <p style="font-size:12px; color:#666;">${p.address}</p>
-                            ${infoHtml}
+                        <div class="timeline-content" style="display:flex; align-items:flex-start;">
+                            <div style="flex:1;">
+                                <h4>${p.title} <span style="font-size:11px;">(${p.status})</span></h4>
+                                <p style="font-size:12px; color:#666;">${p.address}</p>
+                                ${infoHtml}
+                            </div>
+                            <div style="display:flex; flex-direction:column; gap:4px; margin-left:8px;">
+                                <button class="glass-btn icon-only up-btn" style="font-size:10px; width:24px; height:24px; padding:0; ${isFirst ? 'opacity:0.3; cursor:not-allowed;' : ''}" title="위로"><i class="fa-solid fa-chevron-up"></i></button>
+                                <button class="glass-btn icon-only down-btn" style="font-size:10px; width:24px; height:24px; padding:0; ${isLast ? 'opacity:0.3; cursor:not-allowed;' : ''}" title="아래로"><i class="fa-solid fa-chevron-down"></i></button>
+                            </div>
                         </div>
                      `;
+
+                    const btnUp = div.querySelector('.up-btn');
+                    if (btnUp) btnUp.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (isFirst) return;
+                        try {
+                            await this.store.swapOrder('pins', p.id, pins[i - 1].id);
+                            this.renderAdminHistory();
+                        } catch(err) { alert(err.message); }
+                    };
+
+                    const btnDown = div.querySelector('.down-btn');
+                    if (btnDown) btnDown.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (isLast) return;
+                        try {
+                            await this.store.swapOrder('pins', p.id, pins[i + 1].id);
+                            this.renderAdminHistory();
+                        } catch(err) { alert(err.message); }
+                    };
+
                     this.adminTimeline.appendChild(div);
-                });
+                }
             }
         } catch (e) {
             console.error("Error rendering history:", e);
