@@ -44,4 +44,22 @@ export default class UIManager {
             modal.classList.remove('hidden');
         }
     }
+
+    closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.classList.add('hidden');
+            
+            // Check if any other modals are still open
+            const anyOpen = Array.from(document.querySelectorAll('.modal-card')).some(m => !m.classList.contains('hidden'));
+            if (!anyOpen) {
+                this.overlay.classList.remove('active');
+                setTimeout(() => {
+                    if (!Array.from(document.querySelectorAll('.modal-card')).some(m => !m.classList.contains('hidden'))) {
+                        this.overlay.classList.add('hidden');
+                    }
+                }, 300);
+            }
+        }
+    }
 }

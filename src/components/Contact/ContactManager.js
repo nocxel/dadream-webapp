@@ -185,8 +185,9 @@ export default class ContactManager {
     }
 
     closeAddForm() {
-        this.ui.closeModal('contactInputModal');
         this.cancelEdit(false); // Reset form but don't toggle UI again
+        // Modals shouldn't leave the user hanging. Open the list modal again.
+        this.ui.openModal('contactManagerModal');
     }
 
     async handleSubmit(e) {

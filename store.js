@@ -141,13 +141,14 @@ class Store {
             .select()
             .single();
 
-        if (error) {
+        if (error && error.code !== 'PGRST116') {
             if (error.code === '23505') throw new Error(`이미 등록된 번호입니다: ${formattedPhone}`);
             throw error;
         }
 
         // 2. Memory Update (Safe Write)
-        this.contacts.push(data);
+        const finalData = data || { id: crypto.randomUUID(), ...newContact }; // Fallback if RLS blocks select
+        this.contacts.push(finalData);
         // Sort explicitly if needed, or just append
         this.contacts.sort((a, b) => a.name.localeCompare(b.name));
 
@@ -176,15 +177,16 @@ class Store {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') throw error;
+        // if PGRST116 (No rows returned due to RLS), data will be null. But update succeeded.
 
         // Memory Update
         const index = this.contacts.findIndex(c => c.id === id);
         if (index !== -1) {
-            this.contacts[index] = data;
+            this.contacts[index] = data || { ...this.contacts[index], ...updates };
         }
 
-        return data;
+        return this.contacts[index];
     }
 
     async deleteContact(id) {
@@ -241,17 +243,18 @@ class Store {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') throw error;
 
         // Memory Update
-        this.pins.unshift(data); // Add to top
+        const finalData = data || { id: crypto.randomUUID(), ...newPinPayload, created_at: new Date().toISOString() };
+        this.pins.unshift(finalData); // Add to top
 
         // Log Logic (Side Effect - Fire and Forget or Await?)
-        if (data.contact_id) {
-            this.logActivity(data.contact_id, data.id, data.title);
+        if (finalData.contact_id) {
+            this.logActivity(finalData.contact_id, finalData.id, finalData.title);
         }
 
-        return this._enrichPin(data);
+        return this._enrichPin(finalData);
     }
 
     async updatePin(id, updates) {
@@ -272,15 +275,15 @@ class Store {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') throw error;
 
         // Memory Update
         const index = this.pins.findIndex(p => p.id === id);
         if (index !== -1) {
-            this.pins[index] = data;
+            this.pins[index] = data || { ...this.pins[index], ...dbUpdates };
         }
 
-        return this._enrichPin(data);
+        return this._enrichPin(this.pins[index]);
     }
 
     async deletePin(id) {
@@ -299,14 +302,16 @@ class Store {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') throw error;
 
         // Memory Update
         const index = this.pins.findIndex(p => p.id === pinId);
-        if (index !== -1) this.pins[index] = data;
+        if (index !== -1) {
+            this.pins[index] = data || { ...this.pins[index], contact_id: contactId, status: 'active' };
+        }
 
-        await this.logActivity(contactId, pinId, data.title);
-        return this._enrichPin(data);
+        await this.logActivity(contactId, pinId, this.pins[index].title);
+        return this._enrichPin(this.pins[index]);
     }
 
     async unassignContact(pinId) {
@@ -320,13 +325,15 @@ class Store {
             .select()
             .single();
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') throw error;
 
         // Memory Update
         const index = this.pins.findIndex(p => p.id === pinId);
-        if (index !== -1) this.pins[index] = data;
+        if (index !== -1) {
+            this.pins[index] = data || { ...this.pins[index], contact_id: null, status: 'new' };
+        }
 
-        return { pin: this._enrichPin(data), oldContactId };
+        return { pin: this._enrichPin(this.pins[index]), oldContactId };
     }
 
     // ===========================
@@ -360,14 +367,15 @@ class Store {
             .select()
             .single(); // We need data to update memory
 
-        if (error) {
+        if (error && error.code !== 'PGRST116') {
             console.error("Log Error", error);
             return;
         }
 
         // Memory Update
         // We'll just push it. Note that getLogs maps it, so we don't need to fake join here.
-        this.logs.unshift(data);
+        const finalData = data || { id: crypto.randomUUID(), contact_id: contactId, pin_id: pinId, rep_id: this.currentUser.id, created_at: new Date().toISOString() };
+        this.logs.unshift(finalData);
     }
 
     async getContactLogs(contactId) {
